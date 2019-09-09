@@ -1,11 +1,16 @@
 package com.sruiz.converterimagetopdf;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Image;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -33,15 +38,10 @@ public class ConverterFileToPdf {
             if (file.isFile()) {
                 String name = file.getName();
                 // Just get images
-                if (name.contains(JPG_EXT)) {
+                if (name.endsWith(JPG_EXT)) {
                     // Getting the name of a file without the extension and/or the more than one file (1), (2),....
-                    String short_name = short_name = name.contains(PARENTHESIS) ? (String) name.substring(0, name.lastIndexOf(PARENTHESIS)).trim() : (String) name.substring(0, name.lastIndexOf(DOT));
-                    Set<File> subListImages = new HashSet<>();
-                    if (filteredFiles.containsKey(short_name)) {
-                        subListImages = filteredFiles.get(short_name);
-                    }
-                    subListImages.add(file);
-                    filteredFiles.put(short_name, subListImages);
+                    String shortName = name.contains(PARENTHESIS) ? name.substring(0, name.lastIndexOf(PARENTHESIS)).trim() : name.substring(0, name.lastIndexOf(DOT));
+                    filteredFiles.computeIfAbsent(shortName, x -> new HashSet<>()).add(file);
                 }
             }
         }
@@ -56,11 +56,11 @@ public class ConverterFileToPdf {
         createPDFFromImages(filteredFiles, IMAGES_FOLDER);
     }
 
-    public static void createPDFFromImages(Map<String, Set<File>> filteredFiles, String new_folder) throws IOException {
+    public static void createPDFFromImages(Map<String, Set<File>> filteredFiles, String newFolder) throws IOException {
 
         for (Map.Entry listImages : filteredFiles.entrySet()) {
             //Initialize PDF writer
-            PdfWriter writer = new PdfWriter(DEST + listImages.getKey() + PDF_EXT);
+            PdfWriter writer = new PdfWriter(DEST + "\\" + listImages.getKey() + PDF_EXT);
 
             //Initialize PDF document
             PdfDocument pdf = new PdfDocument(writer);
@@ -73,24 +73,11 @@ public class ConverterFileToPdf {
                 Image img = new Image(ImageDataFactory.create(file.getAbsolutePath()));
                 document.add(img);
                 // To get image files on images folder after PDF document has been created
-                String new_path = pathComponent(file.getAbsolutePath()) + new_folder;
-                file.renameTo(new File(new_path + file.getName()));
-                System.out.println(new_path + file.getName());
+                File newPath = new File (file.getParentFile(), newFolder);
+                file.renameTo(new File(newPath, file.getName()));
             }
             document.close();
             System.out.println("Done!");
         }
-    }
-
-    /**
-     * Remove file information from a filename returning only its path component
-     *
-     * @param filename The filename
-     * @return The path information
-     *
-     */
-    public static String pathComponent(String filename) {
-        int i = filename.lastIndexOf(File.separator);
-        return (i > -1) ? filename.substring(0, i) : filename;
     }
 }
